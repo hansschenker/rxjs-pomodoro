@@ -1,13 +1,14 @@
 import { Observable, of, Subject, BehaviorSubject, combineLatest, fromEvent, interval, merge} from "rxjs"
-import { filter, map, scan, tap, withLatestFrom} from "rxjs/operators"
+import { filter, map, mapTo, switchMap, mergeMap, scan, tap, withLatestFrom} from "rxjs/operators"
 
  
-
+const runState = new BehaviorSubject<boolean>(false);  
+const stopState = new BehaviorSubject<boolean>(false);
 // // button refs: stop
-const btnStop = document.getElementById("stop") as HTMLButtonElement;
-const btnStopChanges = fromEvent(btnStop, "click").pipe(
-    map( (e:MouseEvent) => e.target['id'] )
-)
+// const btnStop = document.getElementById("stop") as HTMLButtonElement;
+// const btnStopChanges = fromEvent(btnStop, "click").pipe(
+//     map( (e:MouseEvent) => e.target['id'] )
+// )
 
 // // button refs: resume
 const btnResume = document.getElementById("resume") as HTMLButtonElement;
@@ -20,52 +21,80 @@ const btnResetChanges = fromEvent(btnReset, "click").pipe(
     map( (e:MouseEvent) => e.target['id'] )
 )
 
-type PomodoroAction = "idle" | "start" | "stop" | "resume" | "reset"
+type PomodoroAction = "idle" | "run" | "stop" | "resume" | "reset"
 
+type RunState = "run" | "stop";
 
 const PomodoroVmFn = (vm: PomodoroVm) => vm;
 
 interface PomodoroVm  {
+   running: boolean,
+   runtext: string,
+   paused: boolean,
    countdown:  number,
    current: number,
-   //action: PomodoroAction,
+   // button ref: run
 }
 const initialVm : PomodoroVm = {
+    running: false,
+    runtext: "Start",
+    paused: false,
     countdown: 2500,
     current: 2500,
-    // action: "idle"
 }
-// button refs: start 
-const btnStart = document.getElementById("start") as HTMLButtonElement;
-btnStart.addEventListener("click", e => {
-    runState.next(1)
-})
-const btnStartChanges = fromEvent(btnStart, "click").pipe(
-    map( (e:MouseEvent) => e.target['id'] ),
-)
-const runState = new BehaviorSubject<number>(1);  
-btnStartChanges.subscribe(runState);
 
-const stopState = new BehaviorSubject<PomodoroVm>(initialVm);
+const btnRun = document.getElementById("run") as HTMLButtonElement;
+const runClicks = fromEvent(btnRun, "click").pipe(
+    // tap(v => console.log("runClick:", v)),
+    mapTo(true),
+    ).pipe(
+        tap( v => runState.next(v))
+    )
+    //.subscribe();
+
+
+// btnRun.addEventListener("click", e => {
+//     runState.next( true);
+//     btnRun.innerText = "Stop";
+// })
+
+
+// button ref: stop
+
+const btnStop = document.getElementById("stop") as HTMLButtonElement;
+const stopClicks = fromEvent(btnStop, "click")
+.pipe(
+    // tap(v => console.log("runClick:", v)),
+    mapTo(false),
+    ).pipe(
+        tap( v => runState.next(v))
+    )
+    //.subscribe();
+
+const btnClicks = merge(runClicks , stopClicks);
+
+
+
+
+///////////////////////7
+
 
 const runChanges = runState.pipe(
-    tap( v => console.log("runChange:")),
-    map( (delta: number) => (vm:PomodoroVm) => ({...vm, current:vm.current-1}) )
-  );
-  const stopChanges = stopState.pipe(
-    tap( v => console.log("stopChange:")),
-    map( (delta: PomodoroVm) => (vm:PomodoroVm) => ({...vm, current:vm.countdown + 0}) )
-    
+    tap( v => console.log("runChange:",v)),
+    map( (delta: boolean) => (vm:PomodoroVm) => ({...vm, current:vm.current-1, runtext:"Pause"}) ),
   );
 
-  // the viewmodel observable is a merge of all mutation observables (incr$ and decr$) 
-  // piped into a scan function 
-  // scan has two arguments
-  // the first is the accumulator (the viewmodel) and the second the mutation function
-  // the body of the scan operator executes the mutation function : mutationFn(prevVm) passing the previous state of the viewmodel.
-  // this function returns the mutated viewmodel which is the new accumulated value of the vm$ observable
-  const vmChanges = merge( runChanges, stopChanges).pipe(
+  const stopChanges = stopState.pipe(
+    tap( v => console.log("stopChange:",v)),
+    map( (delta: boolean) => (vm:PomodoroVm) => ({...vm,runtext: "Start" }) )
+  );
+
+  const changes = btnClicks.pipe(
+      switchMap( (v:boolean) => v? runChanges : stopChanges )
+  )
+  
+  const vmChanges = changes.pipe(
     //   tap( (run, stop) => console.log("run, stop:", run, stop)),
-    scan((oldVm: PomodoroVm, mutateFn:(vm: PomodoroVm) => typeof vm) => mutateFn(oldVm), initialVm as PomodoroVm)
+    scan((oldVm: PomodoroVm, mutateFn:(vm: PomodoroVm) => PomodoroVm) => mutateFn(oldVm), initialVm as PomodoroVm)
     // scan( (prevVm:PomodoroVm, mutationFn:(vm:PomodoroVm)=>PomodoroVm) => mutationFn(prevVm), {} as PomodoroVm)
   ).subscribe( v => console.log(v))
