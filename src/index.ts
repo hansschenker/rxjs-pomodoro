@@ -1,5 +1,5 @@
 import { Observable, of, Subject, BehaviorSubject, combineLatest, fromEvent, interval, merge, NEVER} from "rxjs"
-import { filter, map, mapTo, switchMap, mergeMap, scan, tap, withLatestFrom} from "rxjs/operators"
+import { filter, map, mapTo, switchMap, mergeMap,exhaustMap, scan, tap, withLatestFrom} from "rxjs/operators"
 
 
 
@@ -38,44 +38,43 @@ const initialVm : PomodoroVm = {
 // button ref: run
 const runState = new BehaviorSubject<number>(0);
 const btnRun = document.getElementById("run") as HTMLButtonElement;
-const runClicks = fromEvent(btnRun, "click").pipe(
-    map(v => interval(1000))
-)
+const oneFromClick = fromEvent(btnRun, "click").pipe( () => interval(1000))
 
 
 // button ref: stop
-const stopState = new BehaviorSubject<number>(0);
-const btnStop = document.getElementById("stop") as HTMLButtonElement;
-const stopClicks = fromEvent(btnStop, "click")
-.pipe(
-    map( v => of(0))
-)
-
-const btnClicks = merge(runClicks , stopClicks).pipe(
-    mergeMap( v => v)
-)
+// const stopState = new BehaviorSubject<number>(0);
+// const btnStop = document.getElementById("stop") as HTMLButtonElement;
+// const zeroFromClick = fromEvent(btnStop, "click").pipe( mapTo(0))
 
 
+const  numberFromClicks = oneFromClick.subscribe( v => runState.next(v))
+
+// const runOrStop = numberFromClicks.pipe(
+//     map( v => v),
+//     tap( v => console.log("run or stop nbr:", v)),
+//     tap( (v) => v===1? runState.next(1) : stopState.next(0) )
+// )
 
 const runChanges = runState.pipe(
-    // tap( v => console.log("runChange:",v)),
-    map( (delta: number) => (vm:PomodoroVm) => ({...vm, current:vm.current - 1, runtext:"Pause"}) ),
+    tap( v => console.log("run changes:", v)),
+    map( (delta: number) => (vm:PomodoroVm) => ({...vm, current:  vm.countdown - delta, runtext:"Pause"}) ),
   );
 
-  const stopChanges = stopState.pipe(
-    // tap( v => console.log("stopChange:",v)),
-    map( (delta: number) => (vm:PomodoroVm) => ({...vm,runtext: "Start" }) )
-  );
+//   const stopChanges = stopState.pipe(
+//     tap( v => console.log("stopChange:",v)),
+//     map( (delta: number) => (vm:PomodoroVm) => ({...vm,runtext: "Start" }) )
+//   );
 
-  const runOrstopChanges = btnClicks.pipe(
-      switchMap( (v) => v===1? runChanges : stopChanges ),
-      tap( (v) => console.log("run or stop:", v))
-  )
+//   const runOrstopChanges = numberFromClicks.pipe(
+//       switchMap( (v) => v===1? runChanges : stopChanges ),
+//     //   tap( (v) => console.log("run or stop:", ))
+//   )
   
-  const vmChanges = runOrstopChanges.pipe(
-    tap( v => console.log(v)),
-    //   tap( (run, stop) => console.log("run, stop:", run, stop)),
+  const vmChanges = merge(runChanges).pipe(
     scan((oldVm: PomodoroVm, mutateFn:(vm: PomodoroVm) => PomodoroVm) => mutateFn(oldVm), initialVm as PomodoroVm)
-    // scan( (prevVm:PomodoroVm, mutationFn:(vm:PomodoroVm)=>PomodoroVm) => mutationFn(prevVm), {} as PomodoroVm)
-  )
-  //.subscribe( v => console.log(v))
+  )//.subscribe( console.log)
+
+//   function renderPomodoro(vm: PomodoroVm)  {
+//     btnRun.innerText = vm.runtext;
+//     timer.innerText = vm.current.toString();
+//   }
