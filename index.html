@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reactive Pomodoro Lab</title>
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <header><div class="eyebrow">RXJS ARCHITECTURE KATA / 01</div><h1>Reactive Pomodoro Lab</h1>
+    <p>Focus, flow, rest — and the streams connecting them.</p></header>
+  <main>
+    <section class="card timer">
+      <div class="top"><span id="phase" class="pill">IDLE</span><span id="environment" class="muted">Environment: idle (simulated)</span></div>
+      <div id="clock" class="clock" aria-live="off">25:00</div>
+      <div id="detail" class="muted"></div><div id="pause-left" class="muted"></div>
+      <label>Current task <select id="task"></select></label>
+      <div class="buttons">
+        <button id="start">Start focus</button><button id="pause">Pause</button><button id="resume">Resume</button>
+        <button id="finish">Finish focus</button><button id="abort" class="quiet">Void</button>
+        <button id="start-break">Start break</button><button id="skip-break" class="quiet">Skip break</button>
+      </div>
+      <label>Interruption reason <select id="reason"><option>Meeting</option><option>Urgent message</option><option>Fatigue</option><option>Distraction</option><option>Other</option></select></label>
+      <label class="check"><input id="sound" type="checkbox"> Gentle goal/break chime &amp; synthetic ambient noise (opt in)</label>
+      <p id="notice" class="notice" role="status">Ready. Choose a task or focus unassigned.</p>
+    </section>
+    <section class="card"><h2>Timing policies</h2><p class="muted">Changes apply to the next focus session. Try 0.1 minutes (6 seconds) for a quick demo.</p>
+      <form id="settings" class="form-grid">
+        <label>Focus (min)<input name="focus" type="number" min=".02" max="1440" step="any" required></label>
+        <label>Earned break (%)<input name="ratio" type="number" min="0" max="100" step="any" required></label>
+        <label>Prompt every (min; 0 = off)<input name="micro" type="number" min="0" max="1440" step="any" required></label>
+        <label>Maximum pauses<input name="pauses" type="number" min="0" max="100" required></label>
+        <label>Pause limit (min)<input name="pauseTime" type="number" min=".02" max="1440" step="any" required></label>
+        <label>Daily focus budget (min; 0 = off)<input name="budget" type="number" min="0" max="1440" step="any" required></label>
+        <label class="check"><input name="overflow" type="checkbox"> Flowtime overflow</label>
+        <label class="check"><input name="autoBreak" type="checkbox"> Automatically start break</label>
+        <label class="check"><input name="autoFocus" type="checkbox"> Automatically start next focus</label>
+        <button type="submit">Save timing policies</button>
+      </form>
+    </section>
+    <section class="card"><h2>Tasks &amp; estimates</h2><form id="new-task" class="inline-form">
+        <input id="title" placeholder="Task name" aria-label="Task name" required><input id="estimate" type="number" min="0" max="1000" value="2" step="1" aria-label="Estimated blocks" required><button>Add task</button>
+      </form>
+      <label>Filter task progress <input id="task-filter" placeholder="Search tasks"></label><div class="tablewrap"><table><thead><tr><th>Task</th><th>Blocks actual / est.</th><th>Focus</th></tr></thead><tbody id="progress"></tbody></table></div>
+      <p class="muted">Completed-block credit is allocated proportionally across tasks. All actual focus minutes remain in the ledger.</p>
+    </section>
+    <section class="card"><h2>Scratchpad <small>Ctrl / ⌘ + K</small></h2><form id="capture" class="inline-form">
+      <input id="thought" placeholder="Capture a distraction…" aria-label="Capture a distraction" required><button>Save</button>
+      </form><ul id="notes"></ul>
+    </section>
+    <section class="card"><h2>Focus insights</h2><div class="metrics" id="metrics"></div><p id="nudges" class="notice"></p>
+      <h3>Focus by local start hour</h3><div id="hours" class="tablewrap"></div><h3>Interruption reasons</h3><p id="reasons" class="muted"></p>
+      <p class="muted">Descriptive, not a biological circadian or burnout diagnosis. Interpret ratings only when enough sessions have been logged.</p>
+    </section>
+    <section class="card"><h2>Session history</h2><div class="tablewrap"><table><thead><tr><th>Started</th><th>Result</th><th>Focus / overtime</th><th>Rating</th></tr></thead><tbody id="history"></tbody></table></div>
+    </section>
+    <section class="card wide"><h2>Integration playground</h2><p>Mock adapters demonstrate how to import tasks, export calendar focus segments and change environment mode. No external accounts or OS permissions are used.</p>
+      <div class="buttons"><button id="import">Import demo tasks</button><button id="export" class="quiet">Export session JSON</button></div>
+      <pre id="integration-log" aria-live="polite"></pre>
+    </section>
+  </main><footer>Local-only browser demo · Session history and preferences persist locally · Reload discards an active session.</footer>
+  <script type="module" src="/src/main.js"></script>
+</body></html>
